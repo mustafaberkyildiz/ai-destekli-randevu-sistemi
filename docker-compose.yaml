@@ -1,0 +1,82 @@
+services:
+
+  veritabani:
+    image: mysql:8.0
+
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD_ENV}
+      MYSQL_DATABASE: ${DB_NAME_ENV}
+
+    ports:
+      - "3306:3306"
+
+    networks:
+      - randevu_network
+
+    volumes:
+      - randevu_data:/var/lib/mysql
+
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD_ENV}" ]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
+
+  chromadb:
+    image: chromadb/chroma:latest  
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/data
+    networks:
+      - randevu_network
+
+  ai-service:
+    image: mustafaberkyildiz/ai-service:v1
+    ports:
+      - "8001:8001"
+    environment:
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=${CHROMA_PORT}
+    networks:
+      - randevu_network
+    depends_on:
+      - chromadb
+
+  backend:
+
+    image: mustafaberkyildiz/ai-destekli-randevu-sistemi:v2
+
+    environment:
+      - DB_HOST=veritabani
+      - DB_NAME=${DB_NAME_ENV}
+      - DB_PORT=${DB_PORT_ENV}
+      - DB_USERNAME=${DB_USERNAME_ENV}
+      - DB_PASSWORD=${DB_PASSWORD_ENV}
+      - MAIL_HOST=${MAIL_HOST_ENV}
+      - MAIL_PORT=${MAIL_PORT_ENV}
+      - MAIL_USERNAME=${MAIL_USERNAME_ENV}
+      - MAIL_PASSWORD=${MAIL_PASSWORD_ENV}
+      - AI_SERVICE_URL=${AI_SERVICE_URL_ENV}
+
+    ports:
+      - "8080:8080"
+
+    networks:
+      - randevu_network
+
+    depends_on:
+      veritabani:
+        condition: service_healthy
+      ai-service:
+        condition: service_started
+
+
+networks:
+  randevu_network:
+    driver: bridge
+
+volumes:
+  randevu_data:
+  chroma_data:

@@ -1,0 +1,16 @@
+# Ortam değişkenleri (her klasördeki .env dosyasını engeller)
+.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+
+# Java / Spring
+target/
+*.class
+
+# ChromaDB SQLite veritabanı
+*.sqlite3
+
+.dockerignore
